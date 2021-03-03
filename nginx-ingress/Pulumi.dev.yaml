@@ -1,0 +1,2 @@
+config:
+  kubernetes:suppress_deprecation_warnings: "true"
