@@ -14,19 +14,24 @@ def remove_status_field(obj):
 # create a namespace to run nginx-ingress
 ns = k8s.core.v1.Namespace("nginx-ingress", metadata={
 	"name": "nginx-ingress"
-}, opts=)
+})
 
 
 
-# deploy the nginx-ingress helm chart
+# # deploy the nginx-ingress helm chart
 nginx = helm.Chart("nginx-ingress", helm.ChartOpts(
 	chart="nginx-ingress",
 	namespace=ns.metadata.name,
 	fetch_opts=helm.FetchOpts(
 		repo="https://helm.nginx.com/stable"
 	),
+	values={
+		"controller": {
+			"nginxplus": False,
+		}
+	},
 	transformations=[remove_status_field]
 ))
 
-app = ProductionApp("nginx", ProductionAppArgs(image="nginx:latest"))
+# app = ProductionApp("nginx", ProductionAppArgs(image="nginx:latest"))
 

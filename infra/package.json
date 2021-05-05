@@ -1,12 +1,13 @@
 {
     "name": "pulumi-nginx-demo-infra",
     "devDependencies": {
-        "@types/node": "^10.0.0"
+        "@types/node": "^12.0.0"
     },
     "dependencies": {
-        "@pulumi/aws": "^3.25.1",
-        "@pulumi/awsx": "^0.24.0",
-        "@pulumi/eks": "^0.22.0",
-        "@pulumi/pulumi": "^2.0.0"
+        "@pulumi/aws": "^4.0.0",
+        "@pulumi/awsx": "^0.30.0",
+        "@pulumi/eks": "^0.30.0",
+        "@pulumi/docker": "^3.0.0",
+        "@pulumi/pulumi": "^3.0.0"
     }
 }
