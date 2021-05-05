@@ -7,7 +7,7 @@ grpcio==1.37.1
 idna==2.10
 parver==0.3.1
 protobuf==3.15.8
-pulumi==3.1.0
+pulumi==3.2.0
 pulumi-kubernetes==3.1.0
 PyYAML==5.4.1
 requests==2.25.1
