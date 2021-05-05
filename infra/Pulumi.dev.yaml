@@ -1,3 +1,0 @@
-config:
-  aws:profile: pulumi-dev-sandbox
-  aws:region: us-west-2

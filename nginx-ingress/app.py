@@ -1,11 +1,17 @@
 import pulumi
 import pulumi_kubernetes as k8s
-import pulumi_aws as aws
 
 
 class ProductionAppArgs:
-	def __init__(self, image: pulumi.Input[str]):
+	def __init__(
+			self,
+			image: pulumi.Input[str],
+			replicas: pulumi.Input[int] = 5,
+			domain: pulumi.Input[str] = "pulumi-demos.net",
+	):
 		self.image = image
+		self.replicas = replicas
+		self.domain = domain
 
 
 class ProductionApp(pulumi.ComponentResource):
@@ -35,7 +41,7 @@ class ProductionApp(pulumi.ComponentResource):
 				labels=app_labels
 			),
 			spec=k8s.apps.v1.DeploymentSpecArgs(
-				replicas=3,
+				replicas=args.replicas,
 				selector=k8s.meta.v1.LabelSelectorArgs(
 					match_labels=app_labels
 				),
@@ -83,13 +89,10 @@ class ProductionApp(pulumi.ComponentResource):
 			metadata=k8s.meta.v1.ObjectMetaArgs(
 				labels=app_labels,
 				namespace=namespace.metadata.name,
-				annotations={
-					"kubernetes.io/ingress.class": "nginx",
-				}
 			),
 			spec=k8s.networking.v1.IngressSpecArgs(
 				rules=[k8s.networking.v1.IngressRuleArgs(
-					host="kuard.pulumi-demos.net",
+					host=f"{name}.{args.domain}",
 					http=k8s.networking.v1.HTTPIngressRuleValueArgs(
 						paths=[k8s.networking.v1.HTTPIngressPathArgs(
 							path="/",
