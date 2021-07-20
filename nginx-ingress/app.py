@@ -1,17 +1,25 @@
 import pulumi
 import pulumi_kubernetes as k8s
+import pulumi_aws as aws
+from pulumi_kubernetes import networking
+from pulumi_kubernetes.core.v1.Service import Service
 
 
 class ProductionAppArgs:
+    url: pulumi.Output[str]
     def __init__(
         self,
         image: pulumi.Input[str],
-        replicas: pulumi.Input[int] = 5,
-        domain: pulumi.Input[str] = "pulumi-demos.net",
+        loadbalancer: pulumi.Input[str],
+        port: pulumi.Input[int] = 80,
+        replicas: pulumi.Input[int] = 1,
+        domain: pulumi.Input[str] = "aws.briggs.work", 
     ):
         self.image = image
         self.replicas = replicas
         self.domain = domain
+        self.port = port
+        self.loadbalancer = loadbalancer
 
 
 class ProductionApp(pulumi.ComponentResource):
@@ -73,21 +81,23 @@ class ProductionApp(pulumi.ComponentResource):
             spec=k8s.core.v1.ServiceSpecArgs(
                 ports=[
                     k8s.core.v1.ServicePortArgs(
-                        port=8080,
-                        target_port="http",
+                        port=80,
+                        target_port=8080,
                     )
                 ],
                 selector=app_labels,
             ),
         )
 
-        ingress = (
-            k8s.networking.v1beta1.Ingress(
+        ingress = k8s.networking.v1.Ingress(
                 name,
                 opts=pulumi.ResourceOptions(parent=namespace),
                 metadata=k8s.meta.v1.ObjectMetaArgs(
                     labels=app_labels,
                     namespace=namespace.metadata.name,
+                    annotations={
+                        "kubernetes.io/ingress.class": "nginx",
+                    }
                 ),
                 spec=k8s.networking.v1.IngressSpecArgs(
                     rules=[
@@ -97,15 +107,44 @@ class ProductionApp(pulumi.ComponentResource):
                                 paths=[
                                     k8s.networking.v1.HTTPIngressPathArgs(
                                         path="/",
-                                        backend=k8s.networking.v1beta1.IngressBackendArgs(
-                                            service_name=svc.metadata.name,
-                                            service_port="http",
+                                        path_type="ImplementationSpecific",
+                                        backend=k8s.networking.v1.IngressBackendArgs(
+                                            service=k8s.networking.v1.IngressServiceBackendArgs(
+                                                name=svc.metadata.name,
+                                                port=k8s.networking.v1.ServiceBackendPortArgs(
+                                                    number=80
+                                                )
+                                            )
                                         ),
                                     )
                                 ]
+                                
                             ),
                         )
                     ],
                 ),
             ),
+
+        # Get the existing zone
+        zone = aws.route53.get_zone(
+            name=args.domain
         )
+
+        record = aws.route53.Record(
+            name,
+            opts=pulumi.ResourceOptions(
+                parent=self,
+            ),
+            zone_id=zone.id,
+            name=f"{name}",
+            type="CNAME",
+            records=[args.loadbalancer],
+            ttl=1,
+        )
+
+        self.url = record.fqdn
+
+        self.register_outputs({
+            'url': record.fqdn
+        })
+

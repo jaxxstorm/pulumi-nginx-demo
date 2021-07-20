@@ -2,6 +2,7 @@
 
 import pulumi
 import pulumi_kubernetes as k8s
+from pulumi_kubernetes import provider
 import pulumi_kubernetes.helm.v3 as helm
 import pulumi_kubernetes.yaml as yaml
 from app import ProductionApp, ProductionAppArgs
@@ -34,6 +35,13 @@ nginx = helm.Chart(
         },
         transformations=[remove_status],
     ),
+    opts=pulumi.ResourceOptions(parent=ns)
 )
 
-# app = ProductionApp("nginx", ProductionAppArgs(image="nginx:latest"))
+loadbalancer_address = ingress_service_ip = nginx.get_resource(
+            "v1/Service", "nginx-ingress-nginx-ingress", ns.metadata.name).apply(lambda service: service.status.load_balancer.ingress[0].hostname)
+
+
+app = ProductionApp("kuard", ProductionAppArgs(image="gcr.io/kuar-demo/kuard-amd64:blue", loadbalancer=loadbalancer_address))
+
+pulumi.export("url", app.url)
